@@ -3,15 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
-    <title>JourneyX | Best Taxi & Tourist Car Rental Service</title>
-    <meta name="description" content="Book affordable outstation taxis, tourist cars, and local cabs with JourneyX. Best rates for Sedan, SUV, and Luxury cars. Advance booking available.">
-    <meta name="keywords" content="Taxi booking, Tourist car rental, Outstation cab, Cheap taxi service, JourneyX, Innova Crysta rental, Swift Dzire taxi">
-    <meta name="author" content="JourneyX">
-    
+    <title>JourneyX | Premium Taxi Booking</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
+    <style>
+        /* चुने हुए बटन के लिए सफेद घेरा (Circle) */
+        .selected-tab {
+            border: 2px solid white !important;
+            border-radius: 9999px;
+            background: rgba(255, 255, 255, 0.15);
+        }
+    </style>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -34,11 +38,10 @@
 
         window.setTripType = (type, btn) => {
             currentTripType = type;
-            document.querySelectorAll('.tab-btn').forEach(b => {
-                b.classList.remove('bg-white', 'text-blue-900');
-                b.classList.add('text-white');
-            });
-            btn.classList.add('bg-white', 'text-blue-900');
+            // पुराने सभी घेरे हटाओ
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('selected-tab'));
+            // चुने हुए बटन पर सफेद घेरा लगाओ
+            btn.classList.add('selected-tab');
             calculateFare();
         }
 
@@ -50,7 +53,6 @@
             const pickup = document.getElementById('pickupLoc').value;
             const drop = document.getElementById('dropLoc').value;
 
-            // अगर सब भरा है तभी किराया दिखाओ
             if(dist > 0 && car && name && phone && pickup && drop) {
                 let effDist = (currentTripType === 'package' && dist < 250) ? 250 : dist;
                 let total = effDist * rates[car];
@@ -72,7 +74,7 @@
             const date = document.getElementById('bookingDate').value;
             const time = document.getElementById('bookingTime').value;
             if(!date || !time) {
-                showCustomAlert("कृपया यात्रा की तारीख और समय चुनें!");
+                showCustomAlert("कृपया तारीख और समय चुनें!");
                 return;
             }
             document.getElementById('agreementPopup').classList.remove('hidden');
@@ -97,52 +99,45 @@
                 await addDoc(collection(db, "bookings"), data);
                 const botToken = "7954151806:AAHy2Q3nePpv_CqA9ymfhEmg33B229ORClI";
                 const chatId = "5670868884";
-                const msg = `📅 *New Advance Booking!*%0A👤: ${data.name}%0A📱: ${data.phone}%0A🗓: ${data.date} | ⏰: ${data.time}%0A📍: ${data.pickup} to ${data.drop}%0A🚗: ${data.car}%0A💰: ${data.fare}`;
+                const msg = `📅 *New Booking Alert!*%0A👤: ${data.name}%0A📱: ${data.phone}%0A🗓: ${data.date} | ⏰: ${data.time}%0A🚗: ${data.car}%0A💰: ${data.fare}`;
                 
                 await fetch(`https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${msg}&parse_mode=Markdown`);
-
-                showCustomAlert("बुकिंग सफल! हम जल्द संपर्क करेंगे।");
+                showCustomAlert("बुकिंग सफल!");
                 setTimeout(() => location.reload(), 3000);
             } catch (e) { showCustomAlert("Error!"); }
         }
     </script>
 </head>
-<body class="bg-slate-50 flex justify-center">
+<body class="bg-gray-50 flex justify-center">
 
-    <div class="w-full max-w-md bg-white min-h-screen shadow-2xl relative pb-10">
+    <div class="w-full max-w-md bg-white min-h-screen shadow-2xl relative pb-10 font-sans">
         
         <div class="bg-[#1e3a8a] p-6 rounded-b-[40px] text-white shadow-xl">
-            <h1 class="text-3xl font-black italic mb-4 tracking-tighter">JourneyX</h1>
+            <h1 class="text-3xl font-black italic mb-6 tracking-tighter">JourneyX</h1>
             
-            <div class="flex bg-blue-900/50 p-1 rounded-xl text-xs font-bold mb-6">
-                <button onclick="setTripType('one-way', this)" class="tab-btn flex-1 bg-white text-blue-900 py-2 rounded-lg">One Way</button>
-                <button onclick="setTripType('round-trip', this)" class="tab-btn flex-1 py-2 rounded-lg">Round Trip</button>
-                <button onclick="setTripType('package', this)" class="tab-btn flex-1 py-2 rounded-lg">Package</button>
+            <div class="flex bg-blue-900/60 p-2 rounded-2xl text-[11px] font-bold mb-6 space-x-1">
+                <button onclick="setTripType('one-way', this)" class="tab-btn flex-1 py-2 selected-tab transition-all text-white">One Way</button>
+                <button onclick="setTripType('round-trip', this)" class="tab-btn flex-1 py-2 transition-all text-white">Round Trip</button>
+                <button onclick="setTripType('package', this)" class="tab-btn flex-1 py-2 transition-all text-white">Package</button>
             </div>
 
             <div class="space-y-3">
-                <input id="pickupLoc" oninput="calculateFare()" type="text" placeholder="पिकअप (Pickup Address)" class="w-full p-3 rounded-xl bg-blue-800/40 border border-white/10 outline-none text-sm placeholder-blue-200">
-                <input id="dropLoc" oninput="calculateFare()" type="text" placeholder="ड्रॉप (Drop Address)" class="w-full p-3 rounded-xl bg-blue-800/40 border border-white/10 outline-none text-sm placeholder-blue-200">
+                <input id="pickupLoc" oninput="calculateFare()" type="text" placeholder="Pickup Address" class="w-full p-4 rounded-2xl bg-white/10 border border-white/20 text-white outline-none placeholder-blue-200">
+                <input id="dropLoc" oninput="calculateFare()" type="text" placeholder="Drop Address" class="w-full p-4 rounded-2xl bg-white/10 border border-white/20 text-white outline-none placeholder-blue-200">
                 
                 <div class="flex space-x-2">
-                    <div class="flex-1">
-                        <label class="text-[9px] uppercase font-bold text-blue-200 ml-1">Journey Date</label>
-                        <input id="bookingDate" type="date" class="w-full p-3 rounded-xl bg-blue-800/40 border border-white/10 outline-none text-sm">
-                    </div>
-                    <div class="flex-1">
-                        <label class="text-[9px] uppercase font-bold text-blue-200 ml-1">Time</label>
-                        <input id="bookingTime" type="time" class="w-full p-3 rounded-xl bg-blue-800/40 border border-white/10 outline-none text-sm">
-                    </div>
+                    <input id="bookingDate" type="date" class="flex-1 p-3 rounded-xl bg-white/10 border border-white/20 text-white outline-none text-sm">
+                    <input id="bookingTime" type="time" class="flex-1 p-3 rounded-xl bg-white/10 border border-white/20 text-white outline-none text-sm">
                 </div>
-                <input id="distance" type="number" oninput="calculateFare()" placeholder="कुल किलोमीटर (Total KM)" class="w-full p-3 rounded-xl bg-blue-800 text-white outline-none font-bold text-center">
+                <input id="distance" type="number" oninput="calculateFare()" placeholder="कुल किलोमीटर (KM)" class="w-full p-4 rounded-2xl bg-white text-blue-900 font-black text-center outline-none">
             </div>
         </div>
 
         <div class="p-6">
             <div class="space-y-4 mb-6">
                 <div>
-                    <label class="text-[10px] font-bold text-gray-400 uppercase">Car Category</label>
-                    <select id="carSelect" onchange="calculateFare()" class="w-full p-4 border rounded-2xl font-bold bg-gray-50 outline-none text-sm">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase ml-1">Car Category</label>
+                    <select id="carSelect" onchange="calculateFare()" class="w-full p-4 border-2 border-gray-100 rounded-2xl font-bold bg-gray-50 outline-none">
                         <option value="Mini">Mini (Alto, Kwid & Similar)</option>
                         <option value="Sedan">Sedan (Swift Dzire, Etios & Similar)</option>
                         <option value="Ertiga">SUV (Ertiga, Carens & Similar)</option>
@@ -150,35 +145,34 @@
                         <option value="Luxury">Luxury (BMW, Audi & Similar)</option>
                     </select>
                 </div>
-                <input id="uName" oninput="calculateFare()" type="text" placeholder="आपका नाम (Full Name)" class="w-full p-4 border rounded-2xl outline-none text-sm">
-                <input id="uPhone" oninput="calculateFare()" type="tel" placeholder="मोबाइल नंबर (WhatsApp)" class="w-full p-4 border rounded-2xl outline-none text-sm">
+                <input id="uName" oninput="calculateFare()" type="text" placeholder="आपका नाम (Your Name)" class="w-full p-4 border-2 border-gray-100 rounded-2xl outline-none">
+                <input id="uPhone" oninput="calculateFare()" type="tel" placeholder="मोबाइल नंबर (Mobile Number)" class="w-full p-4 border-2 border-gray-100 rounded-2xl outline-none">
             </div>
 
-            <div id="totalBox" class="hidden bg-green-50 border-2 border-green-100 p-6 rounded-3xl mb-6 text-center shadow-inner">
-                <p class="text-green-800 text-xs font-bold uppercase tracking-widest">Estimated Total Fare</p>
-                <h2 id="fareAmount" class="text-4xl font-black text-green-900">₹0</h2>
-                <p class="text-[10px] text-gray-400 mt-1">*Excluding Toll, State Tax & Parking.</p>
+            <div id="totalBox" class="hidden bg-blue-50 border-2 border-blue-100 p-6 rounded-3xl mb-6 text-center shadow-inner">
+                <p class="text-blue-800 text-xs font-bold uppercase tracking-widest">Estimated Total Fare</p>
+                <h2 id="fareAmount" class="text-5xl font-black text-blue-900">₹0</h2>
+                <p class="text-[10px] text-gray-400 mt-2">*Toll, Tax & Parking Extra.</p>
             </div>
 
-            <button onclick="confirmBooking()" class="w-full bg-[#1e3a8a] text-white py-4 rounded-2xl font-bold text-lg shadow-xl uppercase tracking-tighter">Confirm My Booking</button>
+            <button onclick="confirmBooking()" class="w-full bg-[#1e3a8a] text-white py-4 rounded-2xl font-bold text-lg shadow-xl uppercase tracking-widest active:scale-95">Book Now</button>
         </div>
 
         <div id="agreementPopup" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-6 z-[100]">
-            <div class="bg-red-600 text-white p-8 rounded-[40px] text-center shadow-2xl">
-                <h2 class="text-2xl font-bold mb-4">ज़रूरी सूचना!</h2>
-                <p class="text-sm mb-6 leading-relaxed">क्या आप **State Tax, Toll Tax और Parking** शुल्क अलग से देने के लिए तैयार हैं?</p>
-                <button onclick="finalSubmit()" class="w-full bg-white text-red-600 py-3 rounded-xl font-bold mb-3 shadow-lg">हाँ, मैं तैयार हूँ</button>
-                <button onclick="document.getElementById('agreementPopup').classList.add('hidden')" class="text-xs uppercase font-bold opacity-80">Cancel</button>
+            <div class="bg-red-600 text-white p-8 rounded-[40px] text-center shadow-2xl max-w-xs">
+                <h2 class="text-2xl font-bold mb-4 uppercase">ज़रूरी!</h2>
+                <p class="text-sm mb-6 leading-relaxed">क्या आप **State Tax, Toll Tax और Parking** अलग से देने के लिए तैयार हैं?</p>
+                <button onclick="finalSubmit()" class="w-full bg-white text-red-600 py-3 rounded-xl font-bold mb-3 shadow-lg">हाँ, तैयार हूँ</button>
+                <button onclick="document.getElementById('agreementPopup').classList.add('hidden')" class="text-xs uppercase font-bold opacity-70">Cancel</button>
             </div>
         </div>
 
         <div id="customAlert" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-[200] p-6 text-center">
             <div class="bg-white rounded-3xl p-8 max-w-xs w-full shadow-2xl border-t-4 border-blue-900">
                 <p id="alertMessage" class="text-gray-800 font-bold mb-6"></p>
-                <button onclick="document.getElementById('customAlert').classList.add('hidden')" class="w-full bg-[#1e3a8a] text-white py-3 rounded-xl font-bold">Got it!</button>
+                <button onclick="document.getElementById('customAlert').classList.add('hidden')" class="w-full bg-[#1e3a8a] text-white py-3 rounded-xl font-bold">OK</button>
             </div>
         </div>
-
     </div>
 </body>
 </html>
