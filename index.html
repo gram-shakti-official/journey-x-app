@@ -3,90 +3,108 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JourneyX Booking</title>
+    <title>JourneyX - Firebase Booking</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // 🔥 अपना Firebase Config यहाँ पेस्ट करें
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let selectedCar = "Sedan"; // Default
+
+        // गाड़ी चुनने का फंक्शन
+        window.selectCar = function(name, rate) {
+            selectedCar = name;
+            document.querySelectorAll('.car-card').forEach(el => el.classList.remove('ring-4', 'ring-blue-500'));
+            event.currentTarget.classList.add('ring-4', 'ring-blue-500');
+            console.log("Selected:", selectedCar);
+        }
+
+        // बुकिंग सेव करने का फंक्शन
+        window.saveBooking = async function() {
+            const pickup = document.getElementById('pickup').value;
+            const drop = document.getElementById('drop').value;
+            const distance = document.getElementById('distance').value;
+            const name = document.getElementById('userName').value;
+            const phone = document.getElementById('userPhone').value;
+
+            if(!pickup || !drop || !phone) {
+                alert("कृपया पूरी जानकारी भरें!");
+                return;
+            }
+
+            try {
+                const docRef = await addDoc(collection(db, "bookings"), {
+                    customerName: name,
+                    customerPhone: phone,
+                    pickupLocation: pickup,
+                    dropLocation: drop,
+                    distance: distance,
+                    carType: selectedCar,
+                    status: "Pending",
+                    timestamp: serverTimestamp()
+                });
+                alert("बुकिंग सफल! ID: " + docRef.id);
+                location.reload(); // पेज रिफ्रेश
+            } catch (e) {
+                console.error("Error adding document: ", e);
+                alert("बुकिंग में दिक्कत आई, फिर कोशिश करें।");
+            }
+        }
+    </script>
 </head>
-<body class="bg-gray-50 flex justify-center items-start min-h-screen">
+<body class="bg-gray-100 flex justify-center min-h-screen pb-20">
 
-    <div class="w-full max-w-md bg-white shadow-2xl rounded-[40px] overflow-hidden mt-4 border border-gray-100 pb-20 relative">
-        
-        <div class="bg-[#1e3a8a] p-6 rounded-b-[40px] text-white">
-            <h1 class="text-2xl font-bold tracking-tight">JourneyX</h1>
-            <p class="text-xs text-blue-200 mt-1">Safe & Fast Travel</p>
-
-            <div class="flex bg-blue-900/40 mt-6 p-1 rounded-lg text-xs font-medium">
-                <button class="flex-1 bg-white text-blue-900 py-2 rounded-md">One Way</button>
-                <button class="flex-1 py-2">Round Trip</button>
-                <button class="flex-1 py-2">Package</button>
-            </div>
-
-            <div class="mt-4 space-y-3">
-                <div class="flex items-center bg-blue-800/50 rounded-lg p-3 border border-white/10">
-                    <i class="fas fa-location-dot text-green-400 mr-3 text-sm"></i>
-                    <input type="text" placeholder="Pickup Location" class="bg-transparent w-full outline-none text-sm placeholder-blue-200">
-                </div>
-                <div class="flex items-center bg-blue-800/50 rounded-lg p-3 border border-white/10">
-                    <i class="fas fa-location-pin text-red-400 mr-3 text-sm"></i>
-                    <input type="text" placeholder="Drop Location" class="bg-transparent w-full outline-none text-sm placeholder-blue-200">
-                </div>
-                <div class="flex items-center bg-blue-800/50 rounded-lg p-3 border border-white/10">
-                    <i class="fas fa-paper-plane text-blue-300 mr-3 text-sm"></i>
-                    <input type="text" placeholder="Est. Distance (km)" class="bg-transparent w-full outline-none text-sm placeholder-blue-200">
-                </div>
-                <div class="flex space-x-2">
-                    <div class="flex-1 bg-blue-800/50 rounded-lg p-3 border border-white/10 flex items-center justify-between">
-                        <i class="far fa-calendar text-orange-300 text-sm"></i>
-                        <i class="fas fa-chevron-down text-[10px] text-blue-200"></i>
-                    </div>
-                    <div class="flex-1 bg-blue-800/50 rounded-lg p-3 border border-white/10 flex items-center justify-between">
-                        <i class="far fa-clock text-orange-300 text-sm"></i>
-                        <i class="fas fa-chevron-down text-[10px] text-blue-200"></i>
-                    </div>
-                </div>
+    <div class="w-full max-w-md bg-white shadow-xl min-h-screen relative">
+        <div class="bg-blue-900 p-6 text-white rounded-b-[30px]">
+            <h1 class="text-2xl font-bold italic">JourneyX</h1>
+            <div class="mt-4 space-y-2">
+                <input id="pickup" type="text" placeholder="Pickup Address" class="w-full p-3 rounded-lg bg-blue-800 text-white placeholder-blue-300 outline-none border border-blue-700">
+                <input id="drop" type="text" placeholder="Drop Address" class="w-full p-3 rounded-lg bg-blue-800 text-white placeholder-blue-300 outline-none border border-blue-700">
+                <input id="distance" type="number" placeholder="Est. Distance (km)" class="w-full p-3 rounded-lg bg-blue-800 text-white placeholder-blue-300 outline-none border border-blue-700">
             </div>
         </div>
 
-        <div class="p-6">
-            <h2 class="text-md font-bold text-gray-700 mb-4">Select Vehicle</h2>
-            <div class="grid grid-cols-2 gap-4">
-                <div class="border border-gray-200 rounded-xl p-4 shadow-sm">
-                    <p class="font-bold text-gray-800">Mini</p>
-                    <p class="text-[10px] text-gray-400">4 Seater</p>
+        <div class="p-4">
+            <h3 class="font-bold mb-3 text-gray-700">Select Your Ride:</h3>
+            <div class="space-y-3">
+                <div onclick="selectCar('Mini', 9)" class="car-card flex items-center p-3 border rounded-xl cursor-pointer hover:bg-gray-50">
+                    <img src="https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?w=100" class="w-16 h-10 object-cover rounded mr-3">
+                    <div class="flex-1 text-sm font-bold">Mini (₹9/km)</div>
                 </div>
-                <div class="border border-gray-200 rounded-xl p-4 shadow-sm">
-                    <p class="font-bold text-gray-800">Sedan</p>
-                    <p class="text-[10px] text-gray-400">4 Seater</p>
+                <div onclick="selectCar('Sedan', 12)" class="car-card flex items-center p-3 border rounded-xl cursor-pointer hover:bg-gray-50 ring-4 ring-blue-500">
+                    <img src="https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=100" class="w-16 h-10 object-cover rounded mr-3">
+                    <div class="flex-1 text-sm font-bold">Sedan (₹12/km)</div>
                 </div>
-                <div class="border border-gray-200 rounded-xl p-4 shadow-sm">
-                    <p class="font-bold text-gray-800">Ertiga</p>
-                    <p class="text-[10px] text-gray-400">6+ Seater</p>
-                </div>
-                <div class="border border-gray-200 rounded-xl p-4 shadow-sm">
-                    <p class="font-bold text-gray-800">Suv</p>
-                    <p class="text-[10px] text-gray-400">6+ Seater</p>
+                <div onclick="selectCar('Innova', 20)" class="car-card flex items-center p-3 border rounded-xl cursor-pointer hover:bg-gray-50">
+                    <img src="https://images.unsplash.com/photo-1621135802920-133df287f89c?w=100" class="w-16 h-10 object-cover rounded mr-3">
+                    <div class="flex-1 text-sm font-bold">Innova (₹20/km)</div>
                 </div>
             </div>
 
-            <h2 class="text-md font-bold text-gray-700 mt-6 mb-4">Your Details</h2>
-            <button class="w-full bg-gray-800 text-white py-4 rounded-xl font-bold shadow-lg active:scale-95 transition">
-                Book Now
+            <div class="mt-6 space-y-2">
+                <input id="userName" type="text" placeholder="Your Name" class="w-full p-3 border rounded-xl outline-none">
+                <input id="userPhone" type="tel" placeholder="Mobile Number" class="w-full p-3 border rounded-xl outline-none">
+            </div>
+
+            <button onclick="saveBooking()" class="w-full bg-blue-900 text-white py-4 rounded-xl font-bold mt-6 shadow-lg">
+                CONFIRM BOOKING
             </button>
-        </div>
-
-        <div class="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex justify-around py-4">
-            <div class="flex flex-col items-center text-blue-800">
-                <i class="fas fa-car text-lg"></i>
-                <span class="text-[10px] font-bold mt-1">BOOK</span>
-            </div>
-            <div class="flex flex-col items-center text-gray-400">
-                <i class="fas fa-shield-halved text-lg"></i>
-                <span class="text-[10px] font-bold mt-1">DRIVE</span>
-            </div>
-            <div class="flex flex-col items-center text-gray-400">
-                <i class="far fa-user text-lg"></i>
-                <span class="text-[10px] font-bold mt-1">ACCOUNT</span>
-            </div>
         </div>
     </div>
 
