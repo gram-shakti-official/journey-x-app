@@ -8,11 +8,16 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <style>
-        /* चुने हुए बटन के लिए सफेद घेरा (Circle) */
         .selected-tab {
             border: 2px solid white !important;
             border-radius: 9999px;
             background: rgba(255, 255, 255, 0.15);
+        }
+        /* Date/Time input focus color fix */
+        input[type="date"]::-webkit-calendar-picker-indicator,
+        input[type="time"]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            cursor: pointer;
         }
     </style>
 
@@ -38,9 +43,7 @@
 
         window.setTripType = (type, btn) => {
             currentTripType = type;
-            // पुराने सभी घेरे हटाओ
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('selected-tab'));
-            // चुने हुए बटन पर सफेद घेरा लगाओ
             btn.classList.add('selected-tab');
             calculateFare();
         }
@@ -74,7 +77,7 @@
             const date = document.getElementById('bookingDate').value;
             const time = document.getElementById('bookingTime').value;
             if(!date || !time) {
-                showCustomAlert("कृपया तारीख और समय चुनें!");
+                showCustomAlert("Kripya Date aur Time chunein!");
                 return;
             }
             document.getElementById('agreementPopup').classList.remove('hidden');
@@ -102,7 +105,7 @@
                 const msg = `📅 *New Booking Alert!*%0A👤: ${data.name}%0A📱: ${data.phone}%0A🗓: ${data.date} | ⏰: ${data.time}%0A🚗: ${data.car}%0A💰: ${data.fare}`;
                 
                 await fetch(`https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${msg}&parse_mode=Markdown`);
-                showCustomAlert("बुकिंग सफल!");
+                showCustomAlert("Booking Safal Rahi!");
                 setTimeout(() => location.reload(), 3000);
             } catch (e) { showCustomAlert("Error!"); }
         }
@@ -115,21 +118,28 @@
         <div class="bg-[#1e3a8a] p-6 rounded-b-[40px] text-white shadow-xl">
             <h1 class="text-3xl font-black italic mb-6 tracking-tighter">JourneyX</h1>
             
-            <div class="flex bg-blue-900/60 p-2 rounded-2xl text-[11px] font-bold mb-6 space-x-1">
+            <div class="flex bg-blue-900/60 p-2 rounded-2xl text-[11px] font-bold mb-6 space-x-1 text-center">
                 <button onclick="setTripType('one-way', this)" class="tab-btn flex-1 py-2 selected-tab transition-all text-white">One Way</button>
                 <button onclick="setTripType('round-trip', this)" class="tab-btn flex-1 py-2 transition-all text-white">Round Trip</button>
                 <button onclick="setTripType('package', this)" class="tab-btn flex-1 py-2 transition-all text-white">Package</button>
             </div>
 
-            <div class="space-y-3">
+            <div class="space-y-4">
                 <input id="pickupLoc" oninput="calculateFare()" type="text" placeholder="Pickup Address" class="w-full p-4 rounded-2xl bg-white/10 border border-white/20 text-white outline-none placeholder-blue-200">
                 <input id="dropLoc" oninput="calculateFare()" type="text" placeholder="Drop Address" class="w-full p-4 rounded-2xl bg-white/10 border border-white/20 text-white outline-none placeholder-blue-200">
                 
                 <div class="flex space-x-2">
-                    <input id="bookingDate" type="date" class="flex-1 p-3 rounded-xl bg-white/10 border border-white/20 text-white outline-none text-sm">
-                    <input id="bookingTime" type="time" class="flex-1 p-3 rounded-xl bg-white/10 border border-white/20 text-white outline-none text-sm">
+                    <div class="flex-1">
+                        <label class="text-[10px] uppercase font-bold text-blue-200 mb-1 block">📅 Journey Date</label>
+                        <input id="bookingDate" type="date" class="w-full p-3 rounded-xl bg-white/10 border border-white/20 text-white outline-none text-sm">
+                    </div>
+                    <div class="flex-1">
+                        <label class="text-[10px] uppercase font-bold text-blue-200 mb-1 block">⏰ Pickup Time</label>
+                        <input id="bookingTime" type="time" class="w-full p-3 rounded-xl bg-white/10 border border-white/20 text-white outline-none text-sm">
+                    </div>
                 </div>
-                <input id="distance" type="number" oninput="calculateFare()" placeholder="कुल किलोमीटर (KM)" class="w-full p-4 rounded-2xl bg-white text-blue-900 font-black text-center outline-none">
+
+                <input id="distance" type="number" oninput="calculateFare()" placeholder="कुल किलोमीटर (Enter Total KM)" class="w-full p-4 rounded-2xl bg-white text-blue-900 font-black text-center outline-none">
             </div>
         </div>
 
@@ -145,8 +155,8 @@
                         <option value="Luxury">Luxury (BMW, Audi & Similar)</option>
                     </select>
                 </div>
-                <input id="uName" oninput="calculateFare()" type="text" placeholder="आपका नाम (Your Name)" class="w-full p-4 border-2 border-gray-100 rounded-2xl outline-none">
-                <input id="uPhone" oninput="calculateFare()" type="tel" placeholder="मोबाइल नंबर (Mobile Number)" class="w-full p-4 border-2 border-gray-100 rounded-2xl outline-none">
+                <input id="uName" oninput="calculateFare()" type="text" placeholder="आपका नाम (Full Name)" class="w-full p-4 border-2 border-gray-100 rounded-2xl outline-none">
+                <input id="uPhone" oninput="calculateFare()" type="tel" placeholder="मोबाइल नंबर (Phone Number)" class="w-full p-4 border-2 border-gray-100 rounded-2xl outline-none">
             </div>
 
             <div id="totalBox" class="hidden bg-blue-50 border-2 border-blue-100 p-6 rounded-3xl mb-6 text-center shadow-inner">
@@ -155,7 +165,7 @@
                 <p class="text-[10px] text-gray-400 mt-2">*Toll, Tax & Parking Extra.</p>
             </div>
 
-            <button onclick="confirmBooking()" class="w-full bg-[#1e3a8a] text-white py-4 rounded-2xl font-bold text-lg shadow-xl uppercase tracking-widest active:scale-95">Book Now</button>
+            <button onclick="confirmBooking()" class="w-full bg-[#1e3a8a] text-white py-4 rounded-2xl font-bold text-lg shadow-xl uppercase tracking-widest active:scale-95 transition-all">Book Now</button>
         </div>
 
         <div id="agreementPopup" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-6 z-[100]">
