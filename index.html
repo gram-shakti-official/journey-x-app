@@ -3,110 +3,201 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JourneyX - Firebase Booking</title>
+    <title>JourneyX - Premium Cab Booking</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-        // 🔥 अपना Firebase Config यहाँ पेस्ट करें
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_AUTH_DOMAIN",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_STORAGE_BUCKET",
-            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-            appId: "YOUR_APP_ID"
+            apiKey: "AIzaSyB0_3QZj4Yi_ggTtRXQFySjV8NSXtqjsic",
+            authDomain: "journeyx-68a6a.firebaseapp.com",
+            databaseURL: "https://journeyx-68a6a-default-rtdb.firebaseio.com",
+            projectId: "journeyx-68a6a",
+            storageBucket: "journeyx-68a6a.firebasestorage.app",
+            messagingSenderId: "926400211410",
+            appId: "1:926400211410:web:16b8b2dbac2e5e8309800b"
         };
 
-        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        const auth = getAuth(app);
 
-        let selectedCar = "Sedan"; // Default
+        let currentTripType = 'one-way';
+        const rates = { "Mini": 9, "Sedan": 12, "Ertiga": 15, "Innova": 20, "Luxury": 65 };
+        const nightCharges = { "Mini": 300, "Sedan": 300, "Ertiga": 500, "Innova": 500, "Luxury": 1000 };
 
-        // गाड़ी चुनने का फंक्शन
-        window.selectCar = function(name, rate) {
-            selectedCar = name;
-            document.querySelectorAll('.car-card').forEach(el => el.classList.remove('ring-4', 'ring-blue-500'));
-            event.currentTarget.classList.add('ring-4', 'ring-blue-500');
-            console.log("Selected:", selectedCar);
-        }
+        // --- OTP Logic ---
+        window.sendOTP = function() {
+            const phone = document.getElementById('uPhone').value;
+            if (phone.length < 10) { showCustomAlert("सही नंबर डालें!"); return; }
+            
+            window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', { 'size': 'invisible' });
+            const phoneNumber = "+91" + phone;
 
-        // बुकिंग सेव करने का फंक्शन
-        window.saveBooking = async function() {
-            const pickup = document.getElementById('pickup').value;
-            const drop = document.getElementById('drop').value;
-            const distance = document.getElementById('distance').value;
-            const name = document.getElementById('userName').value;
-            const phone = document.getElementById('userPhone').value;
+            signInWithPhoneNumber(auth, phoneNumber, window.recaptchaVerifier)
+                .then((confirmationResult) => {
+                    window.confirmationResult = confirmationResult;
+                    document.getElementById('otpSection').classList.remove('hidden');
+                    showCustomAlert("OTP भेज दिया गया है!");
+                }).catch((error) => { showCustomAlert("Error: " + error.message); });
+        };
 
-            if(!pickup || !drop || !phone) {
-                alert("कृपया पूरी जानकारी भरें!");
-                return;
+        window.verifyOTP = function() {
+            const code = document.getElementById('otpInput').value;
+            window.confirmationResult.confirm(code).then((result) => {
+                showCustomAlert("लॉगिन सफल!");
+                document.getElementById('loginOverlay').classList.add('hidden');
+            }).catch(() => { showCustomAlert("गलत OTP!"); });
+        };
+
+        // --- Pricing Logic ---
+        window.setTripType = (type) => {
+            currentTripType = type;
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('bg-white', 'text-blue-900');
+                btn.classList.add('bg-blue-800', 'text-white');
+            });
+            event.target.classList.replace('bg-blue-800', 'bg-white');
+            event.target.classList.replace('text-white', 'text-blue-900');
+            calculateFare();
+        };
+
+        window.calculateFare = () => {
+            let dist = parseFloat(document.getElementById('distance').value) || 0;
+            const car = document.getElementById('carSelect').value;
+            const time = document.getElementById('pickupTime').value;
+            const fareDisplay = document.getElementById('fareAmount');
+            const nightLabel = document.getElementById('nightChargeLabel');
+
+            if(dist >= 0 && car) {
+                let effectiveDist = (currentTripType === 'package' && dist < 250) ? 250 : dist;
+                let total = effectiveDist * rates[car];
+                if (total < 1000) total = 1000;
+
+                let extraNight = 0;
+                if(currentTripType !== 'one-way' && time) {
+                    const hour = parseInt(time.split(':')[0]);
+                    if(hour >= 23 || hour < 6) extraNight = nightCharges[car];
+                }
+
+                if(extraNight > 0) {
+                    nightLabel.innerText = "NIGHT CHARGE: ₹" + extraNight;
+                    nightLabel.classList.remove('hidden');
+                } else { nightLabel.classList.add('hidden'); }
+
+                fareDisplay.innerText = "₹" + Math.round(total + extraNight);
+                document.getElementById('totalBox').classList.remove('hidden');
             }
+        };
+
+        window.showNotice = () => {
+            if (!auth.currentUser) { showCustomAlert("पहले लॉगिन करें!"); return; }
+            document.getElementById('agreementPopup').classList.remove('hidden');
+        };
+
+        window.confirmBooking = async function() {
+            const name = document.getElementById('uName').value;
+            const phone = auth.currentUser.phoneNumber;
+            const fare = document.getElementById('fareAmount').innerText;
+            const car = document.getElementById('carSelect').value;
 
             try {
-                const docRef = await addDoc(collection(db, "bookings"), {
-                    customerName: name,
-                    customerPhone: phone,
-                    pickupLocation: pickup,
-                    dropLocation: drop,
-                    distance: distance,
-                    carType: selectedCar,
-                    status: "Pending",
-                    timestamp: serverTimestamp()
+                await addDoc(collection(db, "bookings"), {
+                    name, phone, tripType: currentTripType, fare, car, agreement: "Yes", timestamp: serverTimestamp()
                 });
-                alert("बुकिंग सफल! ID: " + docRef.id);
-                location.reload(); // पेज रिफ्रेश
-            } catch (e) {
-                console.error("Error adding document: ", e);
-                alert("बुकिंग में दिक्कत आई, फिर कोशिश करें।");
-            }
-        }
+
+                // Telegram Alert (Using your Token)
+                const botToken = "7954151806:AAHy2Q3nePpv_CqA9ymfhEmg33B229ORClI";
+                const chatId = "5670868884"; // अपनी Chat ID यहाँ डालें
+                const msg = `🚀 *नई बुकिंग!*%0A👤: ${name}%0A📱: ${phone}%0A🚗: ${car}%0A💰: ${fare}%0A📍: ${currentTripType}`;
+                
+                await fetch(`https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${msg}&parse_mode=Markdown`);
+
+                document.getElementById('agreementPopup').classList.add('hidden');
+                showCustomAlert("बुकिंग सफल!");
+                setTimeout(() => location.reload(), 3000);
+            } catch (e) { showCustomAlert("डेटाबेस एरर!"); }
+        };
+
+        window.showCustomAlert = (msg) => {
+            document.getElementById('alertMessage').innerText = msg;
+            document.getElementById('customAlert').classList.remove('hidden');
+        };
+        window.closeCustomAlert = () => document.getElementById('customAlert').classList.add('hidden');
     </script>
 </head>
-<body class="bg-gray-100 flex justify-center min-h-screen pb-20">
+<body class="bg-gray-100 flex justify-center min-h-screen font-sans">
 
-    <div class="w-full max-w-md bg-white shadow-xl min-h-screen relative">
-        <div class="bg-blue-900 p-6 text-white rounded-b-[30px]">
-            <h1 class="text-2xl font-bold italic">JourneyX</h1>
-            <div class="mt-4 space-y-2">
-                <input id="pickup" type="text" placeholder="Pickup Address" class="w-full p-3 rounded-lg bg-blue-800 text-white placeholder-blue-300 outline-none border border-blue-700">
-                <input id="drop" type="text" placeholder="Drop Address" class="w-full p-3 rounded-lg bg-blue-800 text-white placeholder-blue-300 outline-none border border-blue-700">
-                <input id="distance" type="number" placeholder="Est. Distance (km)" class="w-full p-3 rounded-lg bg-blue-800 text-white placeholder-blue-300 outline-none border border-blue-700">
+    <div id="recaptcha-container"></div>
+
+    <div id="loginOverlay" class="fixed inset-0 bg-blue-900 z-[100] flex flex-col items-center justify-center p-8 text-white">
+        <h2 class="text-4xl font-black italic mb-8">JourneyX</h2>
+        <div class="w-full max-w-xs space-y-4">
+            <input id="uPhone" type="tel" placeholder="WhatsApp Number" class="w-full p-4 rounded-2xl bg-white/10 border border-white/20 text-white outline-none">
+            <button onclick="sendOTP()" class="w-full bg-white text-blue-900 py-4 rounded-2xl font-bold uppercase tracking-widest">Send OTP</button>
+            
+            <div id="otpSection" class="hidden space-y-4 mt-6">
+                <input id="otpInput" type="number" placeholder="Enter 6-digit OTP" class="w-full p-4 rounded-2xl bg-white/20 border border-white/30 text-white text-center text-2xl tracking-[10px] outline-none">
+                <button onclick="verifyOTP()" class="w-full bg-green-500 text-white py-4 rounded-2xl font-bold uppercase tracking-widest">Verify & Login</button>
             </div>
-        </div>
-
-        <div class="p-4">
-            <h3 class="font-bold mb-3 text-gray-700">Select Your Ride:</h3>
-            <div class="space-y-3">
-                <div onclick="selectCar('Mini', 9)" class="car-card flex items-center p-3 border rounded-xl cursor-pointer hover:bg-gray-50">
-                    <img src="https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?w=100" class="w-16 h-10 object-cover rounded mr-3">
-                    <div class="flex-1 text-sm font-bold">Mini (₹9/km)</div>
-                </div>
-                <div onclick="selectCar('Sedan', 12)" class="car-card flex items-center p-3 border rounded-xl cursor-pointer hover:bg-gray-50 ring-4 ring-blue-500">
-                    <img src="https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=100" class="w-16 h-10 object-cover rounded mr-3">
-                    <div class="flex-1 text-sm font-bold">Sedan (₹12/km)</div>
-                </div>
-                <div onclick="selectCar('Innova', 20)" class="car-card flex items-center p-3 border rounded-xl cursor-pointer hover:bg-gray-50">
-                    <img src="https://images.unsplash.com/photo-1621135802920-133df287f89c?w=100" class="w-16 h-10 object-cover rounded mr-3">
-                    <div class="flex-1 text-sm font-bold">Innova (₹20/km)</div>
-                </div>
-            </div>
-
-            <div class="mt-6 space-y-2">
-                <input id="userName" type="text" placeholder="Your Name" class="w-full p-3 border rounded-xl outline-none">
-                <input id="userPhone" type="tel" placeholder="Mobile Number" class="w-full p-3 border rounded-xl outline-none">
-            </div>
-
-            <button onclick="saveBooking()" class="w-full bg-blue-900 text-white py-4 rounded-xl font-bold mt-6 shadow-lg">
-                CONFIRM BOOKING
-            </button>
         </div>
     </div>
 
+    <div class="w-full max-w-md bg-white shadow-2xl relative min-h-screen pb-10">
+        <div class="bg-[#1e3a8a] p-6 rounded-b-[40px] text-white shadow-lg">
+            <h1 class="text-3xl font-black italic tracking-tighter">JourneyX</h1>
+            <div class="flex bg-blue-900/50 p-1 rounded-xl text-[10px] font-bold uppercase mt-4 mb-6">
+                <button onclick="setTripType('one-way')" class="tab-btn flex-1 bg-white text-blue-900 py-2 rounded-lg">One Way</button>
+                <button onclick="setTripType('round-trip')" class="tab-btn flex-1 py-2 rounded-lg">Round Trip</button>
+                <button onclick="setTripType('package')" class="tab-btn flex-1 py-2 rounded-lg">Package</button>
+            </div>
+            <div class="space-y-3">
+                <input id="pickupTime" type="time" onchange="calculateFare()" class="w-full p-3 rounded-xl bg-blue-800 text-white outline-none border border-white/10">
+                <input id="distance" type="number" oninput="calculateFare()" placeholder="Total KM" class="w-full p-3 rounded-xl bg-blue-800 text-white placeholder-blue-300 outline-none border border-white/10">
+            </div>
+        </div>
+
+        <div class="p-6">
+            <select id="carSelect" onchange="calculateFare()" class="w-full p-4 border rounded-2xl font-bold mb-6 bg-gray-50">
+                <option value="Mini">Mini (₹9/km)</option>
+                <option value="Sedan">Sedan (₹12/km)</option>
+                <option value="Ertiga">Ertiga/Carens (₹15/km)</option>
+                <option value="Innova">Innova Crysta (₹20/km)</option>
+                <option value="Luxury">Luxury (₹65/km)</option>
+            </select>
+
+            <div id="totalBox" class="hidden bg-blue-50 border-2 border-blue-200 p-5 rounded-3xl mb-6 text-center">
+                <p class="text-blue-800 text-[10px] font-bold uppercase">Estimated Fare</p>
+                <h2 id="fareAmount" class="text-4xl font-black text-blue-900">₹0</h2>
+                <p id="nightChargeLabel" class="text-[10px] text-red-600 font-bold mt-2 hidden uppercase"></p>
+                <p class="text-[10px] text-gray-400 mt-1">*Minimum ₹1000 + Taxes.</p>
+            </div>
+
+            <input id="uName" type="text" placeholder="Your Name" class="w-full p-3 border rounded-xl outline-none mb-6">
+            <button onclick="showNotice()" class="w-full bg-[#1e3a8a] text-white py-4 rounded-2xl font-bold text-lg shadow-xl uppercase">Confirm Booking</button>
+        </div>
+
+        <div id="agreementPopup" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-6 z-[60]">
+            <div class="bg-red-600 text-white p-8 rounded-[40px] text-center max-w-sm shadow-2xl">
+                <h2 class="text-2xl font-bold mb-4 uppercase">ज़रूरी सूचना!</h2>
+                <p class="text-sm mb-6 leading-relaxed">क्या आप **State Tax, Toll Tax और Parking** अलग से देने के लिए तैयार हैं?</p>
+                <div class="flex flex-col space-y-3">
+                    <button onclick="confirmBooking()" class="bg-white text-red-600 py-3 rounded-xl font-bold">हाँ, मैं तैयार हूँ</button>
+                    <button onclick="document.getElementById('agreementPopup').classList.add('hidden')" class="text-white text-xs uppercase font-bold">नहीं, रद्द करें</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="customAlert" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-[150] p-6 text-center">
+            <div class="bg-white rounded-3xl p-8 max-w-xs w-full shadow-2xl">
+                <p class="text-lg font-bold text-gray-800 mb-6" id="alertMessage"></p>
+                <button onclick="closeCustomAlert()" class="w-full bg-blue-900 text-white py-3 rounded-xl font-bold">OK</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
