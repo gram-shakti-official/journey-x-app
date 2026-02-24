@@ -132,5 +132,31 @@
             <button onclick="finalSubmit()" class="w-full bg-[#1e3a8a] text-white py-5 rounded-2xl font-black text-lg shadow-xl uppercase active:scale-95 transition-all">Confirm Booking</button>
         </div>
     </div>
-</body>
+        <script>
+        // --- सुपबेस सेटअप (इसे <script> के अंदर यहाँ लगाएँ) ---
+        const SUPABASE_URL = "https://tqpmmqzdlttlgduykbw.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_vEJyQPNgldCwal0Syx2ApA__00e0lcK";
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        async function finalSubmit() {
+            const name = document.getElementById('uName').value;
+            const phone = document.getElementById('uPhone').value;
+
+            const { data, error } = await _supabase
+                .from('bookings')
+                .insert([{
+                    customer_name: name,
+                    customer_phone: phone,
+                    status: 'pending'
+                }]);
+
+            if (error) {
+                alert("❌ एरर: " + error.message);
+            } else {
+                alert("✅ मुबारक हो विकास भाई! बुकिंग सफल रही।");
+                location.reload();
+            }
+        }
+    </script>
+</body> 
 </html>
