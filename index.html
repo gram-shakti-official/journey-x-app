@@ -25,8 +25,14 @@
                 <input id="dropLoc" type="text" placeholder="Drop Location" class="w-full p-4 rounded-2xl bg-white/10 border border-white/20 text-white outline-none placeholder-blue-100 font-bold">
                 
                 <div class="grid grid-cols-2 gap-2">
-                    <input id="travelDate" type="date" class="w-full p-4 rounded-2xl bg-white/10 border border-white/20 text-white outline-none font-bold">
-                    <input id="travelTime" type="time" class="w-full p-4 rounded-2xl bg-white/10 border border-white/20 text-white outline-none font-bold">
+                    <div class="flex flex-col">
+                        <label class="text-[9px] font-bold ml-2 mb-1 text-blue-200">TRAVEL DATE</label>
+                        <input id="travelDate" type="date" class="w-full p-4 rounded-2xl bg-white/10 border border-white/20 text-white outline-none font-bold">
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-[9px] font-bold ml-2 mb-1 text-blue-200">TRAVEL TIME</label>
+                        <input id="travelTime" type="time" class="w-full p-4 rounded-2xl bg-white/10 border border-white/20 text-white outline-none font-bold">
+                    </div>
                 </div>
 
                 <input id="distance" type="number" oninput="calculateFare()" placeholder="Total KM" class="w-full p-4 rounded-2xl bg-white text-blue-900 font-black text-center outline-none shadow-lg text-2xl">
@@ -47,7 +53,7 @@
             <div class="relative">
                 <input id="uPhone" type="tel" oninput="checkCustomerRating()" placeholder="WhatsApp Number" class="w-full p-4 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-900 font-bold">
                 <div id="userRatingBadge" class="hidden absolute right-3 top-4 bg-yellow-400 text-blue-900 text-[9px] font-black px-2 py-1 rounded-full shadow-sm">
-                    Checking Profile...
+                    Checking...
                 </div>
             </div>
 
@@ -64,7 +70,7 @@
                     <i class="fas fa-check-circle"></i>
                 </div>
                 <h2 class="text-2xl font-black text-gray-800 mb-2">बुकिंग सफल!</h2>
-                <p id="successMsg" class="text-gray-500 font-bold text-sm mb-6">Vikas bhai, aapki premium profile se booking ho gayi hai.</p>
+                <p class="text-gray-500 font-bold text-sm mb-6">Vikas bhai, aapki profile se booking ho gayi hai.</p>
                 <button onclick="location.reload()" class="w-full bg-green-600 text-white py-4 rounded-2xl font-black uppercase">OK</button>
             </div>
         </div>
@@ -86,9 +92,22 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
+        // ✅ पेज लोड होते ही आज की तारीख और समय डालना
+        window.onload = () => {
+            const now = new Date();
+            
+            // तारीख सेट करना (YYYY-MM-DD फॉर्मेट)
+            const today = now.toISOString().split('T')[0];
+            document.getElementById('travelDate').value = today;
+
+            // समय सेट करना (HH:MM फॉर्मेट)
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('travelTime').value = hours + ":" + minutes;
+        };
+
         const rates = { "Mini": 9, "Sedan": 12, "Ertiga": 15, "Innova": 20, "Luxury": 65 };
 
-        // 1. KM Calculate Fare
         window.calculateFare = () => {
             const dist = parseFloat(document.getElementById('distance').value) || 0;
             const car = document.getElementById('carSelect').value;
@@ -99,34 +118,23 @@
             }
         };
 
-        // 2. CHECK CUSTOMER RATING FROM FIREBASE
         window.checkCustomerRating = async () => {
             const phone = document.getElementById('uPhone').value.trim();
             const badge = document.getElementById('userRatingBadge');
-            
             if(phone.length >= 10) {
                 badge.classList.remove('hidden');
-                badge.innerText = "Searching Profile...";
-                
                 try {
                     const docRef = doc(db, "customers", phone);
                     const docSnap = await getDoc(docRef);
-
                     if (docSnap.exists()) {
-                        const data = docSnap.data();
-                        badge.innerText = (data.rating || "5.0") + " ⭐ Profile";
-                        badge.style.backgroundColor = "#fbbf24"; // Gold for old users
+                        badge.innerText = (docSnap.data().rating || "5.0") + " ⭐ Profile";
                     } else {
                         badge.innerText = "5.0 ⭐ New Profile";
-                        badge.style.backgroundColor = "#34d399"; // Green for new users
                     }
-                } catch(e) { console.log("Rating error", e); }
-            } else {
-                badge.classList.add('hidden');
-            }
+                } catch(e) { console.log(e); }
+            } else { badge.classList.add('hidden'); }
         };
 
-        // 3. SUBMIT BOOKING & UPDATE PROFILE
         window.finalSubmit = async () => {
             const name = document.getElementById('uName').value.trim();
             const phone = document.getElementById('uPhone').value.trim();
@@ -138,28 +146,20 @@
             const car = document.getElementById('carSelect').value;
             const fare = document.getElementById('fareAmount').innerText;
 
-            if(!name || !phone || !date || !time) return alert("Puri details bhariye!");
+            if(!name || !phone) return alert("Bhai, Naam aur Number bharna zaroori hai!");
 
             const btn = document.getElementById('bookBtn');
-            btn.innerText = "Saving Profile...";
+            btn.innerText = "Booking...";
             btn.disabled = true;
 
             try {
-                // Booking save karo
                 await addDoc(collection(db, "bookings"), {
                     customer_name: name, customer_phone: phone, pickup, drop,
                     travel_date: date, travel_time: time, car_type: car,
                     distance: dist + " KM", fare: fare, status: "pending",
                     booked_at: new Date().toLocaleString()
                 });
-
-                // Customer profile create/update karo (Yahan se rating start hogi)
-                await setDoc(doc(db, "customers", phone), {
-                    name: name,
-                    phone: phone,
-                    last_booking: new Date().toLocaleString()
-                }, { merge: true });
-
+                await setDoc(doc(db, "customers", phone), { name, phone }, { merge: true });
                 document.getElementById('successModal').classList.remove('hidden');
             } catch (e) {
                 alert("Error: " + e.message);
