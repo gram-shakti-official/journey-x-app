@@ -46,8 +46,8 @@
                     <option value="Luxury">Luxury (BMW/Audi) - ₹65/KM</option>
                 </select>
             </div>
-            <input id="uName" type="text" placeholder="आपका नाम (Name)" class="w-full p-4 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-900 font-bold">
-            <input id="uPhone" type="tel" placeholder="मोबाइल नंबर (WhatsApp)" class="w-full p-4 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-900 font-bold">
+            <input id="uName" type="text" placeholder="Aapka Naam" class="w-full p-4 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-900 font-bold">
+            <input id="uPhone" type="tel" placeholder="WhatsApp Number" class="w-full p-4 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-900 font-bold">
 
             <div id="totalBox" class="hidden bg-blue-50 border-2 border-blue-100 p-6 rounded-3xl text-center">
                 <p class="text-blue-800 text-xs font-bold uppercase tracking-widest">Estimated Fare</p>
@@ -62,7 +62,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // ✅ आपका Firebase Config
         const firebaseConfig = {
             apiKey: "AIzaSyBJhXPgch_y-k3KxF0m7xT4MCcnO0rAx-8",
             authDomain: "journeyx-new-11d38.firebaseapp.com",
@@ -99,7 +98,7 @@
             const fare = document.getElementById('fareAmount').innerText;
 
             if(!name || !phone || !date || !time) {
-                alert("कृपया पूरी जानकारी भरें!");
+                alert("Bhai, Details bharna zaroori hai!");
                 return;
             }
 
@@ -121,8 +120,7 @@
                     status: "pending",
                     booked_at: new Date().toLocaleString()
                 });
-
-                alert("✅ बुकिंग सफल! हम आपसे जल्द संपर्क करेंगे।");
+                alert("✅ बुकिंग सफल!");
                 location.reload();
             } catch (e) {
                 alert("Error: " + e.message);
