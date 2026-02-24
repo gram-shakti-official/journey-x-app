@@ -9,18 +9,18 @@
     <style>
         input[type="date"]::-webkit-calendar-picker-indicator,
         input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+        
+        /* ✅ सुंदर पॉपअप के लिए एनीमेशन */
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .success-popup { animation: slideUp 0.4s ease-out; }
     </style>
 </head>
 <body class="bg-gray-100 flex justify-center">
 
     <div class="w-full max-w-md bg-white min-h-screen shadow-2xl relative pb-10 font-sans">
         <div class="bg-blue-900 p-6 rounded-b-[40px] text-white shadow-xl text-center">
-            <h1 class="text-3xl font-black italic tracking-tighter">JOURNEY X</h1>
+            <h1 class="text-3xl font-black italic tracking-tighter uppercase">JOURNEY X</h1>
             <p class="text-[10px] font-bold uppercase tracking-[2px] text-blue-200 mt-1">All India Taxi Service | Largest Taxi Service</p>
-            
-            <div class="inline-block bg-yellow-400 text-blue-900 px-4 py-1 rounded-full font-black text-[10px] shadow-lg mt-3 uppercase">
-                5.0 ⭐ Premium Quality
-            </div>
             
             <div class="mt-6 space-y-4 text-left">
                 <input id="pickupLoc" type="text" placeholder="Pickup Location" class="w-full p-4 rounded-2xl bg-white/10 border border-white/20 text-white outline-none placeholder-blue-100 font-bold">
@@ -36,26 +36,34 @@
         </div>
 
         <div class="p-6 space-y-4">
-            <div>
-                <label class="text-[10px] font-bold text-gray-400 uppercase ml-1">Car Category</label>
-                <select id="carSelect" onchange="calculateFare()" class="w-full p-4 border-2 border-gray-100 rounded-2xl font-bold bg-gray-50 outline-none">
-                    <option value="Mini">Mini (₹9/KM)</option>
-                    <option value="Sedan">Sedan (₹12/KM)</option>
-                    <option value="Ertiga">Ertiga (₹15/KM)</option>
-                    <option value="Innova">Innova Crysta (₹20/KM)</option>
-                    <option value="Luxury">Luxury (BMW/Audi) - ₹65/KM</option>
-                </select>
-            </div>
+            <select id="carSelect" onchange="calculateFare()" class="w-full p-4 border-2 border-gray-100 rounded-2xl font-bold bg-gray-50 outline-none">
+                <option value="Mini">Mini (₹9/KM)</option>
+                <option value="Sedan">Sedan (₹12/KM)</option>
+                <option value="Ertiga">Ertiga (₹15/KM)</option>
+                <option value="Innova">Innova Crysta (₹20/KM)</option>
+                <option value="Luxury">Luxury (BMW/Audi) - ₹65/KM</option>
+            </select>
             <input id="uName" type="text" placeholder="Aapka Naam" class="w-full p-4 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-900 font-bold">
             <input id="uPhone" type="tel" placeholder="WhatsApp Number" class="w-full p-4 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-900 font-bold">
 
             <div id="totalBox" class="hidden bg-blue-50 border-2 border-blue-100 p-6 rounded-3xl text-center">
-                <p class="text-blue-800 text-xs font-bold uppercase tracking-widest">Estimated Fare</p>
                 <h2 id="fareAmount" class="text-5xl font-black text-blue-900">₹0</h2>
             </div>
 
             <button id="bookBtn" onclick="finalSubmit()" class="w-full bg-blue-900 text-white py-5 rounded-2xl font-black text-lg shadow-xl uppercase active:scale-95 transition-all">Confirm Booking</button>
         </div>
+
+        <div id="successModal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-end sm:items-center justify-center p-4">
+            <div class="success-popup bg-white w-full max-w-sm rounded-[40px] p-8 text-center shadow-2xl">
+                <div class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 text-4xl">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <h2 class="text-2xl font-black text-gray-800 mb-2">बुकिंग सफल!</h2>
+                <p class="text-gray-500 font-bold text-sm mb-6">विकास भाई, आपकी गाड़ी बुक हो गई है। हम आपसे जल्द संपर्क करेंगे।</p>
+                <button onclick="location.reload()" class="w-full bg-green-600 text-white py-4 rounded-2xl font-black uppercase shadow-lg shadow-green-200">OK</button>
+            </div>
+        </div>
+
     </div>
 
     <script type="module">
@@ -98,7 +106,7 @@
             const fare = document.getElementById('fareAmount').innerText;
 
             if(!name || !phone || !date || !time) {
-                alert("Bhai, Details bharna zaroori hai!");
+                alert("कृपया पूरी जानकारी भरें!");
                 return;
             }
 
@@ -108,20 +116,15 @@
 
             try {
                 await addDoc(collection(db, "bookings"), {
-                    customer_name: name,
-                    customer_phone: phone,
-                    pickup: pickup,
-                    drop: drop,
-                    travel_date: date,
-                    travel_time: time,
-                    car_type: car,
-                    distance: dist + " KM",
-                    fare: fare,
-                    status: "pending",
+                    customer_name: name, customer_phone: phone, pickup, drop,
+                    travel_date: date, travel_time: time, car_type: car,
+                    distance: dist + " KM", fare: fare, status: "pending",
                     booked_at: new Date().toLocaleString()
                 });
-                alert("✅ बुकिंग सफल!");
-                location.reload();
+                
+                // ✅ पुराना Alert हटाकर नया Modal दिखाना
+                document.getElementById('successModal').classList.remove('hidden');
+
             } catch (e) {
                 alert("Error: " + e.message);
                 btn.innerText = "Confirm Booking";
