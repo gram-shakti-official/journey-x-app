@@ -6,6 +6,7 @@
     <title>JourneyX | Premium Taxi Booking</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
@@ -15,26 +16,25 @@
     </style>
 
     <script>
-        // --- सुपबेस सेटअप ---
+        // --- Supabase Setup ---
         const SUPABASE_URL = "https://tqpmmqzdlttlgduykbw.supabase.co";
         const SUPABASE_KEY = "sb_publishable_vEJyQPNgldCwal0Syx2ApA__00e0lcK"; 
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        let userRating = 5.0; // यहाँ ग्राहक की रेटिंग है
+        let userRating = 5.0; 
         const rates = { "Mini": 9, "Sedan": 12, "Ertiga": 15, "Innova": 20, "Luxury": 65 };
 
         window.onload = () => {
             filterLuxuryCars();
         };
 
-        // --- रेटिंग के हिसाब से गाड़ी छुपाने का लॉजिक ---
         function filterLuxuryCars() {
             const carSelect = document.getElementById('carSelect');
             const ratingDisplay = document.getElementById('displayRating');
             ratingDisplay.innerText = userRating.toFixed(1) + " ⭐";
 
             if (userRating < 4.5) {
-                ratingDisplay.style.backgroundColor = "#ef4444"; // लाल रंग
+                ratingDisplay.style.backgroundColor = "#ef4444"; 
                 for (let i = 0; i < carSelect.options.length; i++) {
                     if (carSelect.options[i].value === "Luxury" || carSelect.options[i].value === "Innova") {
                         carSelect.options[i].style.display = "none";
@@ -56,26 +56,40 @@
         async function finalSubmit() {
             const name = document.getElementById('uName').value;
             const phone = document.getElementById('uPhone').value;
+            const pickup = document.getElementById('pickupLoc').value;
+            const drop = document.getElementById('dropLoc').value;
             const dist = document.getElementById('distance').value;
             const car = document.getElementById('carSelect').value;
             const fare = document.getElementById('fareAmount').innerText;
 
             if(!name || !phone || !dist) { alert("कृपया पूरी जानकारी भरें!"); return; }
 
-            const { error } = await _supabase.from('bookings').insert([{
-                customer_name: name,
-                customer_phone: phone,
-                vehicle_type: car,
-                fuel_type: "Rating: " + userRating,
-                luggage_details: "Fare: " + fare + " | KM: " + dist,
-                status: 'pending'
-            }]);
+            // Loading state
+            const btn = document.querySelector('button');
+            btn.innerText = "Processing...";
+            btn.disabled = true;
 
-            if (!error) {
-                alert("✅ बुकिंग सफल रही!");
-                location.reload();
+            const { data, error } = await _supabase
+                .from('bookings')
+                .insert([{
+                    customer_name: name,
+                    customer_phone: phone,
+                    pickup_location: pickup,
+                    drop_location: drop,
+                    vehicle_type: car,
+                    fuel_type: dist + " KM",
+                    luggage_details: fare,
+                    status: 'pending'
+                }]);
+
+            if (error) {
+                console.error(error);
+                alert("❌ एरर: " + error.message);
+                btn.innerText = "Confirm Booking";
+                btn.disabled = false;
             } else {
-                alert("❌ एरर: डेटा सेव नहीं हुआ।");
+                alert("✅ मुबारक हो विकास भाई! बुकिंग सफल रही।");
+                location.reload();
             }
         }
     </script>
@@ -107,8 +121,8 @@
                     <option value="Luxury">Luxury (BMW/Audi) - ₹65/KM</option>
                 </select>
             </div>
-            <input id="uName" type="text" placeholder="Full Name" class="w-full p-4 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-900">
-            <input id="uPhone" type="tel" placeholder="Mobile Number" class="w-full p-4 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-900">
+            <input id="uName" type="text" placeholder="आपका नाम (Name)" class="w-full p-4 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-900">
+            <input id="uPhone" type="tel" placeholder="मोबाइल नंबर (Phone)" class="w-full p-4 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-900">
 
             <div id="totalBox" class="hidden bg-blue-50 border-2 border-blue-100 p-6 rounded-3xl text-center">
                 <p class="text-blue-800 text-xs font-bold uppercase tracking-widest">Estimated Fare</p>
