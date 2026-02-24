@@ -9,8 +9,6 @@
     <style>
         input[type="date"]::-webkit-calendar-picker-indicator,
         input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
-        
-        /* ✅ सुंदर पॉपअप के लिए एनीमेशन */
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
         .success-popup { animation: slideUp 0.4s ease-out; }
     </style>
@@ -18,11 +16,11 @@
 <body class="bg-gray-100 flex justify-center">
 
     <div class="w-full max-w-md bg-white min-h-screen shadow-2xl relative pb-10 font-sans">
-        <div class="bg-blue-900 p-6 rounded-b-[40px] text-white shadow-xl text-center">
-            <h1 class="text-3xl font-black italic tracking-tighter uppercase">JOURNEY X</h1>
-            <p class="text-[10px] font-bold uppercase tracking-[2px] text-blue-200 mt-1">All India Taxi Service | Largest Taxi Service</p>
+        <div class="bg-blue-900 p-8 rounded-b-[40px] text-white shadow-xl text-center">
+            <h1 class="text-4xl font-black italic tracking-tighter uppercase">JOURNEY X</h1>
+            <p class="text-[10px] font-bold uppercase tracking-[2px] text-blue-200 mt-2">All India Taxi Service | Largest Taxi Service</p>
             
-            <div class="mt-6 space-y-4 text-left">
+            <div class="mt-8 space-y-4 text-left">
                 <input id="pickupLoc" type="text" placeholder="Pickup Location" class="w-full p-4 rounded-2xl bg-white/10 border border-white/20 text-white outline-none placeholder-blue-100 font-bold">
                 <input id="dropLoc" type="text" placeholder="Drop Location" class="w-full p-4 rounded-2xl bg-white/10 border border-white/20 text-white outline-none placeholder-blue-100 font-bold">
                 
@@ -43,8 +41,15 @@
                 <option value="Innova">Innova Crysta (₹20/KM)</option>
                 <option value="Luxury">Luxury (BMW/Audi) - ₹65/KM</option>
             </select>
+            
             <input id="uName" type="text" placeholder="Aapka Naam" class="w-full p-4 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-900 font-bold">
-            <input id="uPhone" type="tel" placeholder="WhatsApp Number" class="w-full p-4 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-900 font-bold">
+            
+            <div class="relative">
+                <input id="uPhone" type="tel" oninput="checkCustomerRating()" placeholder="WhatsApp Number" class="w-full p-4 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-900 font-bold">
+                <div id="userRatingBadge" class="hidden absolute right-3 top-4 bg-yellow-400 text-blue-900 text-[9px] font-black px-2 py-1 rounded-full shadow-sm">
+                    Checking Profile...
+                </div>
+            </div>
 
             <div id="totalBox" class="hidden bg-blue-50 border-2 border-blue-100 p-6 rounded-3xl text-center">
                 <h2 id="fareAmount" class="text-5xl font-black text-blue-900">₹0</h2>
@@ -59,16 +64,15 @@
                     <i class="fas fa-check-circle"></i>
                 </div>
                 <h2 class="text-2xl font-black text-gray-800 mb-2">बुकिंग सफल!</h2>
-                <p class="text-gray-500 font-bold text-sm mb-6">विकास भाई, आपकी गाड़ी बुक हो गई है। हम आपसे जल्द संपर्क करेंगे।</p>
-                <button onclick="location.reload()" class="w-full bg-green-600 text-white py-4 rounded-2xl font-black uppercase shadow-lg shadow-green-200">OK</button>
+                <p id="successMsg" class="text-gray-500 font-bold text-sm mb-6">Vikas bhai, aapki premium profile se booking ho gayi hai.</p>
+                <button onclick="location.reload()" class="w-full bg-green-600 text-white py-4 rounded-2xl font-black uppercase">OK</button>
             </div>
         </div>
-
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, collection, addDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBJhXPgch_y-k3KxF0m7xT4MCcnO0rAx-8",
@@ -84,6 +88,7 @@
 
         const rates = { "Mini": 9, "Sedan": 12, "Ertiga": 15, "Innova": 20, "Luxury": 65 };
 
+        // 1. KM Calculate Fare
         window.calculateFare = () => {
             const dist = parseFloat(document.getElementById('distance').value) || 0;
             const car = document.getElementById('carSelect').value;
@@ -94,6 +99,34 @@
             }
         };
 
+        // 2. CHECK CUSTOMER RATING FROM FIREBASE
+        window.checkCustomerRating = async () => {
+            const phone = document.getElementById('uPhone').value.trim();
+            const badge = document.getElementById('userRatingBadge');
+            
+            if(phone.length >= 10) {
+                badge.classList.remove('hidden');
+                badge.innerText = "Searching Profile...";
+                
+                try {
+                    const docRef = doc(db, "customers", phone);
+                    const docSnap = await getDoc(docRef);
+
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        badge.innerText = (data.rating || "5.0") + " ⭐ Profile";
+                        badge.style.backgroundColor = "#fbbf24"; // Gold for old users
+                    } else {
+                        badge.innerText = "5.0 ⭐ New Profile";
+                        badge.style.backgroundColor = "#34d399"; // Green for new users
+                    }
+                } catch(e) { console.log("Rating error", e); }
+            } else {
+                badge.classList.add('hidden');
+            }
+        };
+
+        // 3. SUBMIT BOOKING & UPDATE PROFILE
         window.finalSubmit = async () => {
             const name = document.getElementById('uName').value.trim();
             const phone = document.getElementById('uPhone').value.trim();
@@ -105,26 +138,29 @@
             const car = document.getElementById('carSelect').value;
             const fare = document.getElementById('fareAmount').innerText;
 
-            if(!name || !phone || !date || !time) {
-                alert("कृपया पूरी जानकारी भरें!");
-                return;
-            }
+            if(!name || !phone || !date || !time) return alert("Puri details bhariye!");
 
             const btn = document.getElementById('bookBtn');
-            btn.innerText = "Please Wait...";
+            btn.innerText = "Saving Profile...";
             btn.disabled = true;
 
             try {
+                // Booking save karo
                 await addDoc(collection(db, "bookings"), {
                     customer_name: name, customer_phone: phone, pickup, drop,
                     travel_date: date, travel_time: time, car_type: car,
                     distance: dist + " KM", fare: fare, status: "pending",
                     booked_at: new Date().toLocaleString()
                 });
-                
-                // ✅ पुराना Alert हटाकर नया Modal दिखाना
-                document.getElementById('successModal').classList.remove('hidden');
 
+                // Customer profile create/update karo (Yahan se rating start hogi)
+                await setDoc(doc(db, "customers", phone), {
+                    name: name,
+                    phone: phone,
+                    last_booking: new Date().toLocaleString()
+                }, { merge: true });
+
+                document.getElementById('successModal').classList.remove('hidden');
             } catch (e) {
                 alert("Error: " + e.message);
                 btn.innerText = "Confirm Booking";
