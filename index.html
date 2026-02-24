@@ -3,22 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JourneyX | Book Your Ride</title>
+    <title>JourneyX | Largest Taxi Service</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        input[type="date"]::-webkit-calendar-picker-indicator,
+        input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+    </style>
 </head>
 <body class="bg-gray-100 flex justify-center">
 
     <div class="w-full max-w-md bg-white min-h-screen shadow-2xl relative pb-10 font-sans">
         <div class="bg-blue-900 p-6 rounded-b-[40px] text-white shadow-xl text-center">
-            <h1 class="text-3xl font-black italic mb-2 tracking-tighter">JOURNEY X</h1>
-            <div class="inline-block bg-yellow-400 text-blue-900 px-4 py-1 rounded-full font-black text-sm shadow-lg">
-                5.0 ⭐ Premium Service
+            <h1 class="text-3xl font-black italic tracking-tighter">JOURNEY X</h1>
+            <p class="text-[10px] font-bold uppercase tracking-[2px] text-blue-200 mt-1">All India Taxi Service | Largest Taxi Service</p>
+            
+            <div class="inline-block bg-yellow-400 text-blue-900 px-4 py-1 rounded-full font-black text-[10px] shadow-lg mt-3 uppercase">
+                5.0 ⭐ Premium Quality
             </div>
             
             <div class="mt-6 space-y-4 text-left">
-                <input id="pickupLoc" type="text" placeholder="Pickup Location" class="w-full p-4 rounded-2xl bg-white/10 border border-white/20 text-white outline-none placeholder-blue-100">
-                <input id="dropLoc" type="text" placeholder="Drop Location" class="w-full p-4 rounded-2xl bg-white/10 border border-white/20 text-white outline-none placeholder-blue-100">
+                <input id="pickupLoc" type="text" placeholder="Pickup Location" class="w-full p-4 rounded-2xl bg-white/10 border border-white/20 text-white outline-none placeholder-blue-100 font-bold">
+                <input id="dropLoc" type="text" placeholder="Drop Location" class="w-full p-4 rounded-2xl bg-white/10 border border-white/20 text-white outline-none placeholder-blue-100 font-bold">
+                
+                <div class="grid grid-cols-2 gap-2">
+                    <input id="travelDate" type="date" class="w-full p-4 rounded-2xl bg-white/10 border border-white/20 text-white outline-none font-bold">
+                    <input id="travelTime" type="time" class="w-full p-4 rounded-2xl bg-white/10 border border-white/20 text-white outline-none font-bold">
+                </div>
+
                 <input id="distance" type="number" oninput="calculateFare()" placeholder="Total KM" class="w-full p-4 rounded-2xl bg-white text-blue-900 font-black text-center outline-none shadow-lg text-2xl">
             </div>
         </div>
@@ -34,8 +46,8 @@
                     <option value="Luxury">Luxury (BMW/Audi) - ₹65/KM</option>
                 </select>
             </div>
-            <input id="uName" type="text" placeholder="Aapka Naam" class="w-full p-4 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-900 font-bold">
-            <input id="uPhone" type="tel" placeholder="Mobile Number" class="w-full p-4 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-900 font-bold">
+            <input id="uName" type="text" placeholder="आपका नाम (Name)" class="w-full p-4 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-900 font-bold">
+            <input id="uPhone" type="tel" placeholder="मोबाइल नंबर (WhatsApp)" class="w-full p-4 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-900 font-bold">
 
             <div id="totalBox" class="hidden bg-blue-50 border-2 border-blue-100 p-6 rounded-3xl text-center">
                 <p class="text-blue-800 text-xs font-bold uppercase tracking-widest">Estimated Fare</p>
@@ -50,7 +62,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // Aapka Driver App wala Firebase Config
+        // ✅ आपका Firebase Config
         const firebaseConfig = {
             apiKey: "AIzaSyBJhXPgch_y-k3KxF0m7xT4MCcnO0rAx-8",
             authDomain: "journeyx-new-11d38.firebaseapp.com",
@@ -65,7 +77,6 @@
 
         const rates = { "Mini": 9, "Sedan": 12, "Ertiga": 15, "Innova": 20, "Luxury": 65 };
 
-        // Fare Calculation Function
         window.calculateFare = () => {
             const dist = parseFloat(document.getElementById('distance').value) || 0;
             const car = document.getElementById('carSelect').value;
@@ -76,18 +87,19 @@
             }
         };
 
-        // Final Submit to Firebase Firestore
         window.finalSubmit = async () => {
             const name = document.getElementById('uName').value.trim();
             const phone = document.getElementById('uPhone').value.trim();
             const pickup = document.getElementById('pickupLoc').value.trim();
             const drop = document.getElementById('dropLoc').value.trim();
+            const date = document.getElementById('travelDate').value;
+            const time = document.getElementById('travelTime').value;
             const dist = document.getElementById('distance').value;
             const car = document.getElementById('carSelect').value;
             const fare = document.getElementById('fareAmount').innerText;
 
-            if(!name || !phone || !pickup || !drop || !dist) {
-                alert("Bhai, sari jankari bharna zaroori hai!");
+            if(!name || !phone || !date || !time) {
+                alert("कृपया पूरी जानकारी भरें!");
                 return;
             }
 
@@ -96,23 +108,23 @@
             btn.disabled = true;
 
             try {
-                // Firebase ki 'bookings' collection mein data save karna
                 await addDoc(collection(db, "bookings"), {
                     customer_name: name,
                     customer_phone: phone,
                     pickup: pickup,
                     drop: drop,
+                    travel_date: date,
+                    travel_time: time,
                     car_type: car,
                     distance: dist + " KM",
                     fare: fare,
                     status: "pending",
-                    time: new Date().toLocaleString()
+                    booked_at: new Date().toLocaleString()
                 });
 
-                alert("✅ Mubarak ho Vikas bhai! Firebase mein booking save ho gayi.");
+                alert("✅ बुकिंग सफल! हम आपसे जल्द संपर्क करेंगे।");
                 location.reload();
             } catch (e) {
-                console.error(e);
                 alert("Error: " + e.message);
                 btn.innerText = "Confirm Booking";
                 btn.disabled = false;
